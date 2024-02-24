@@ -49,7 +49,7 @@ def partition_cost(graph, A, B, n):
     return cut
 
 def Hops(snode, dnode, n):
-    hop_count = abs(address.row[snode] - address.row[dnode]) + abs(address.colum[snode] - address.colum[dnode])
+    hop_count = abs(address.row[snode] - address.row[dnode]) + abs(address.colum[snode] - address.colum[dnode]) + abs(address.height[snode] - address.height[dnode])
     return hop_count
 
 
