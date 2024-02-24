@@ -41,9 +41,11 @@ def initialize_add():
     n = int(n4)
     row_add = [0] * nodes
     col_add = [0] * nodes
-    z_add = [0] * nodes
+    layer_add = [0] * nodes
+    # Layer add is the new 3-dimension item to be added.
+    num_layers = NUM_LAYERS
     tmp = [[0] * nodes for _ in range(n - 1)]
-    
+
     for i in range(1, n):
         c = 0
         l = 0
@@ -56,7 +58,7 @@ def initialize_add():
         row_add[i] = col_add[i] = row_add[i + 1] = col_add[i + 2] = 0
         col_add[i + 1] = row_add[i + 2] = col_add[i + 3] = row_add[i + 3] = 1
 
-    count = 0 
+    count = 0
     xyz = 1
     for i in range(4, nodes, i * 4):
         count = 0
@@ -70,23 +72,34 @@ def initialize_add():
                         row_add[i * count + k] += xyz
                     if j == 1 or j == 3:
                         col_add[i * count + k] += xyz
+
             j+=1
             count+=1
 
-
+    c = 0
+    print(nodes//num_layers)
+    for i in range(nodes):
+        if i%(nodes//num_layers) == 0:
+            c += 1
+        layer_add[i] = c - 1
 
     address.colum = col_add
     address.row = row_add
+    address.layer = layer_add
+    # print(tmp)
     a = tmp
     print("INITIALIZE ADD: " + str(a))
     print("Address.row = " + str(address.row))
     print("Address.column = " + str(address.colum))
+    print("Address.layer = " + str(address.layer))
 
 
 def read_graph(name, dist):
     fp1 = open(name, 'r')
 
     nodes = int(fp1.readline().strip())
+    # print(nodes, NUM_LAYERS)
+    
     # buff = fp1.readline().strip()
 
     Graph_inf.actual_No_nodes = actual_no_of_nodes = nodes
@@ -108,13 +121,15 @@ def read_graph(name, dist):
 
     row = 0
     co = 0
-    count = 0
     netlist = [0.0] * nodes
+    if nodes%NUM_LAYERS != 0:
+        print("Num of layers must be a factor of the number of nodes.")
+        exit(1)
 
     # Allocate memory for each inner list
     for i in range(nodes):
         netlist[i] = [0.0] * nodes
-    
+
     # print(type(netlist[0][0]))
     for row in range(actual_no_of_nodes):
         buff = fp1.readline().strip().split()
@@ -173,9 +188,7 @@ def read_graph(name, dist):
 
 # 2D to 3D routine
 
-    
-    if NUM_LAYERS > 1:
-        print(nodes, actual_no_of_nodes)
+
 
     return netlist
 
@@ -187,7 +200,7 @@ def main():
 
     t = time.time()
     random.seed(t)
-    global NUM_LAYERS 
+    global NUM_LAYERS
 
     if len(sys.argv) < 4:
         print("\t\t\t\t\tNO INPUT GRAPH or no. of cuts\n\n")
@@ -200,9 +213,7 @@ def main():
     if len(sys.argv) == 5:
         NUM_LAYERS = int(sys.argv[4])
         print("Number of Layers is more than 1 : " + str(NUM_LAYERS))
-        if NUM_LAYERS&(NUM_LAYERS-1) != 0:
-            print("NUM LAYERS Needs to be a power of 2. Aborting..")
-            return
+
     graph = read_graph(sys.argv[1], sys.argv[3])
     print("read graph")
     # for i in range(8):
@@ -210,7 +221,7 @@ def main():
     #         print(graph[i][j]," ")
     print(graph)
     result_table = [0.0, 0.0]
-    
+
     initialize_add()
     no_cuts = int(sys.argv[2])
 
@@ -244,10 +255,10 @@ def main():
             Header.seed_value[j] = random.randint(0, 5147483647)
         # print(seed_value)
         perform_KL(sys.argv, graph, output)
-        
+
         if result_table[1] > output[1]:
             flag = 1
-        
+
         if flag == 1:
             result_table[0] = output[0]
             result_table[1] = output[1]
@@ -262,7 +273,7 @@ def main():
 
 def perform_KL(argv, netlist, output):
     t1 = time.process_time()
-    
+
     core_id = None
     final_partition_core = None
     actual_no_of_nodes = nodes = 0
@@ -286,9 +297,9 @@ def perform_KL(argv, netlist, output):
     comm_cost = 0.0
     partition = [None, None]
     partition[0] = [0] * (nodes // 2)
-    partition[1] = [0] * (nodes // 2) 
+    partition[1] = [0] * (nodes // 2)
     init = int(sys.argv[2])
-    
+
     final_partition_core = [0]*init
     for i in range(init):
         final_partition_core[i]=[0]*nodes
@@ -297,7 +308,7 @@ def perform_KL(argv, netlist, output):
     for i in range(init):
         Init_comm_cut_cost = 0
         Init_powbal = 0
-        
+
         KL(i, netlist, core_id, nodes, partition)
         # print(core_id)
         # print(partition[0])
@@ -308,13 +319,13 @@ def perform_KL(argv, netlist, output):
 
         KL_partition(i, netlist, nodes//2, partition[0], final_partition_core)
         KL_partition(i, netlist, nodes//2, partition[1], final_partition_core)
-        
+
         q.update(0)
         rask = cost(final_partition_core[i], netlist, nodes)
         # print(rask)
         for j in range(0, nodes, 2):
             fp.write(f"{final_partition_core[i][j]+1} {final_partition_core[i][j+1]+1}\t")
-        
+
         fp.write(f"\n{i}\n{rask}\n\n")
 
 
@@ -327,26 +338,26 @@ def perform_KL(argv, netlist, output):
         # print(i)
         cost_f[i] = map_nodes(nodes, final_partition_core[i], netlist)
     # print(cost_f)
-    if distri == 1: 
+    if distri == 1:
         fp.write(f"\nDistributive\t{argv[1]}\tno. of cores= {actual_no_of_nodes}\tno. of cuts {init}\n")
         print(f"\nDistributive\t{argv[1]}\tno. of cores= {actual_no_of_nodes}\n")
-    else:  
+    else:
         fp.write(f"\n{argv[1]}\tno. of cores= {actual_no_of_nodes}\tno. of cuts {init}\n")
         print(f"\n{argv[1]}\tno. of cores= {actual_no_of_nodes}\n")
-    
+
     for j in range(init):
         for i in range(0, nodes, 2):
             print(final_partition_core[j][i] + 1, final_partition_core[j][i + 1] + 1, "\t", end="")
-            
+
             fp.write(f"{final_partition_core[j][i] + 1} {final_partition_core[j][i + 1] + 1}\t")
 
         cost_f[j] = cost(final_partition_core[j], netlist, nodes)
         temp = cost_f[j]
-        
+
         if temp < best_cost:
             best_cost = temp
             best = j
-        
+
         fp.write(f"\n{j}\n{cost_f[j]}\n\n")
 
     fp.write(f"\n\n***** best cost={float(cost_f[best])}\nbest ={best}")
@@ -399,7 +410,7 @@ def perform_KL(argv, netlist, output):
     for i in range(nodes):
         inv_corex[corex[i]] = i
         fp1.write(str(i) + "\t" + str(corex[i]) + "\n")
-    
+
     fp2.write("\n\nsrc-id\tdst-id\tpir\n")
     for i in range(noedges):
         fp2.write(f"{inv_corex[D[i].source]}\t{inv_corex[D[i].destination]}\t{pir[i]}\n")
@@ -415,18 +426,18 @@ def perform_KL(argv, netlist, output):
 def map_nodes(nodes, final_partition_core, graph):
     best_partition = 0
     temp_cost = 0.0
-    
+
     temp_final_partition_core = [0] * nodes
-    
+
     best_cost = [float('inf')] * 4
     Global_best = 0.0
     temp = 0.0
-    
+
     iterative_improvement(graph, final_partition_core, nodes, 1)
     Final_Global_best_cost = cost(final_partition_core, graph, nodes)
     for i in range(nodes):
         temp_final_partition_core[i] = final_partition_core[i]
-    
+
     iterative_improvement(graph, temp_final_partition_core, nodes, 0)
     best_cost[3] = cost(temp_final_partition_core, graph, nodes)
     best_cost[1]=best_cost[2]=best_cost[0]=MAX
@@ -436,7 +447,7 @@ def map_nodes(nodes, final_partition_core, graph):
         iterative_improvement(graph, temp_final_partition_core, nodes, 0)
         # print("hello")
         temp = cost(temp_final_partition_core, graph, nodes)
-        
+
         if temp <= best_cost[3]:
             best_cost[0] = best_cost[1]
             best_cost[1] = best_cost[2]
@@ -445,7 +456,7 @@ def map_nodes(nodes, final_partition_core, graph):
 
         if temp == best_cost[3] and temp == best_cost[2] and temp == best_cost[1] and temp == best_cost[0]:
             break
-    # print("hellp")       
+    # print("hellp")
     if Final_Global_best_cost > best_cost[3]:
         Final_Global_best_cost = best_cost[3]
         for i in range(nodes):
@@ -480,11 +491,11 @@ def iterative_improvement(graph, final_partition_core, nodes, local):
             for j in range(nodes):
                 temp_row[j] = address.row[j]
                 temp_col[j] = address.colum[j]
-            
+
             for k in range(nodes):
                 if a[curr_lvl - 1][k] == i + 1:
                     break
-            
+
             t = int(math.pow(2.0, n - curr_lvl))
             # print(t)
             min_row = address.row[k - t]
@@ -501,7 +512,7 @@ def iterative_improvement(graph, final_partition_core, nodes, local):
 
             avg_row = (max_row + min_row) / 2.0
             avg_col = (max_col + min_col) / 2.0
-            
+
             best_cost[0] = flip(graph, temp_final_partition_core[0], k, t, nodes, local)
 
             # print(best_cost)
@@ -555,7 +566,7 @@ def iterative_improvement(graph, final_partition_core, nodes, local):
                     address.row[w] = address.row[w] - shift
                 elif address.row[w] < avg_row:
                     address.row[w] = address.row[w] + shift
-    
+
 
             for w in range(nodes):
                 for j in range(nodes):
@@ -579,7 +590,7 @@ def iterative_improvement(graph, final_partition_core, nodes, local):
 
             for j in range(nodes):
                 final_partition_core[j] = temp_final_partition_core[best_partition][j]
-    
+
     del temp_col
     del temp_row
     del temp_final_partition_core
@@ -676,7 +687,7 @@ def flip(G, final_partition_core, k, t, nodes, local):
     # Flip along horizontal axis
     diffrence = (max_row - min_row) / 2.0
     shift = math.ceil(diffrence)
-    for w in range(k, k + t):    
+    for w in range(k, k + t):
         if address.row[w] >= avg_row:
             address.row[w] = address.row[w] - shift
         elif address.row[w] < avg_row:
@@ -702,7 +713,7 @@ def flip(G, final_partition_core, k, t, nodes, local):
         if(cost_arr[j]<best_cost):
             best_cost=cost_arr[j]
             best=j
-				
+
 
     # Finalizing results
     for j in range(nodes):
@@ -715,4 +726,4 @@ def flip(G, final_partition_core, k, t, nodes, local):
 
 if __name__ == "__main__":
     main()
-    
+
