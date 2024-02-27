@@ -306,8 +306,7 @@ def perform_KL(argv, netlist, output):
     rask = 0.0
 
     for i in range(init):
-        Init_comm_cut_cost = 0
-        Init_powbal = 0
+  
 
         KL(i, netlist, core_id, nodes, partition)
         # print(core_id)
@@ -424,13 +423,11 @@ def perform_KL(argv, netlist, output):
 
 
 def map_nodes(nodes, final_partition_core, graph):
-    best_partition = 0
-    temp_cost = 0.0
+   
 
     temp_final_partition_core = [0] * nodes
 
     best_cost = [float('inf')] * 4
-    Global_best = 0.0
     temp = 0.0
 
     iterative_improvement(graph, final_partition_core, nodes, 1)
