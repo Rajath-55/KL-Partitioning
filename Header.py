@@ -30,7 +30,7 @@ class virtual_address:
     def __init__(self):
         self.row = None
         self.colum = None
-        self.height = None
+        self.layer = None
 
 address = virtual_address()
 
@@ -49,7 +49,7 @@ def partition_cost(graph, A, B, n):
     return cut
 
 def Hops(snode, dnode, n):
-    hop_count = abs(address.row[snode] - address.row[dnode]) + abs(address.colum[snode] - address.colum[dnode]) + abs(address.height[snode] - address.height[dnode])
+    hop_count = abs(address.row[snode] - address.row[dnode]) + abs(address.colum[snode] - address.colum[dnode]) + abs(address.layer[snode] - address.layer[dnode])
     return hop_count
 
 
